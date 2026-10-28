@@ -1,0 +1,28 @@
+# Environment files
+.env
+.env.local
+*.env
+
+# Database data
+data/postgres/
+*.log
+
+# Dependencies
+node_modules/
+dist/
+build/
+.cache/
+
+# Hardhat & Solc
+blockchain/artifacts/
+blockchain/cache/
+blockchain/typechain-types/
+
+# Uploads
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# IDE & OS
+.DS_Store
+.vscode/
+.idea/

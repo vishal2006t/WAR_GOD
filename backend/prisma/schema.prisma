@@ -1,0 +1,393 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  DEALER
+  DRIVER
+  FACTORY
+  WORKER
+  CUSTOMER
+}
+
+enum BatchStatus {
+  REGISTERED
+  DISPATCHED
+  RECEIVED
+  PROCESSED
+  DISPUTED
+}
+
+enum DispatchStatus {
+  REGISTERED
+  ASSIGNED
+  PICKED_UP
+  IN_TRANSIT
+  DELIVERED
+  RECEIVED
+  DISPUTED
+}
+
+enum AccountStatus {
+  PENDING
+  APPROVED
+  SUSPENDED
+}
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  passwordHash String
+  fullName     String
+  phone        String?
+  role         Role          @default(CUSTOMER)
+  status       AccountStatus @default(APPROVED)
+  organization String?
+  facilityId   String?
+  facility     Facility?     @relation(fields: [facilityId], references: [id])
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  batchesCreated    WasteBatch[]
+  dispatchesAssigned Dispatch[]
+  receivingRecords   ReceivingRecord[]
+  processingWorker   ProcessingRecord[] @relation("WorkerProcessings")
+  processingSupervisor ProcessingRecord[] @relation("SupervisorProcessings")
+  auditLogs         AuditLog[]
+  notifications     Notification[]
+  evidenceFiles     EvidenceFile[]
+  handoversSent     Handover[]         @relation("SenderHandovers")
+  handoversReceived Handover[]         @relation("ReceiverHandovers")
+
+  @@index([role])
+  @@index([email])
+}
+
+model Facility {
+  id           String        @id @default(uuid())
+  name         String        @unique
+  code         String        @unique
+  facilityType String        // e.g. "RECYCLING", "SMELTER", "DISASSEMBLY", "REFURBISHMENT"
+  address      String
+  contactEmail String
+  contactPhone String?
+  authorized   Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  users             User[]
+  batchesTargeted   WasteBatch[]       @relation("DestinationBatches")
+  dispatchesTargeted Dispatch[]        @relation("DestinationDispatches")
+  receivingRecords  ReceivingRecord[]
+  processingRecords ProcessingRecord[]
+}
+
+model WasteCategory {
+  id          String       @id @default(uuid())
+  name        String       @unique
+  code        String       @unique
+  description String?
+  batches     WasteBatch[]
+}
+
+model WasteBatch {
+  id                    String        @id @default(uuid())
+  batchId               String        @unique // Human readable: e.g. BATCH-2026-001
+  dealerId              String
+  dealer                User          @relation(fields: [dealerId], references: [id])
+  categoryId            String
+  category              WasteCategory @relation(fields: [categoryId], references: [id])
+  pickupLocation        String
+  sourceType            String        // e.g. "Commercial", "Municipal", "Enterprise"
+  description           String
+  initialWeightKg       Float
+  status                BatchStatus   @default(REGISTERED)
+  destinationFacilityId String
+  destinationFacility   Facility      @relation("DestinationBatches", fields: [destinationFacilityId], references: [id])
+  evidenceHash          String?
+  weighingSlipUrl       String?
+  qrCodeData            String?
+  txHash                String?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  dispatches            DispatchBatch[]
+  receivingRecord       ReceivingRecord?
+  processingRecords     ProcessingRecord[]
+  recoveredMaterials    RecoveredMaterial[]
+  refurbishedProducts   Product[]
+
+  @@index([batchId])
+  @@index([status])
+  @@index([dealerId])
+}
+
+model Dispatch {
+  id                    String         @id @default(uuid())
+  dispatchId            String         @unique // e.g. DISP-2026-001
+  driverId              String?
+  driver                User?          @relation(fields: [driverId], references: [id])
+  vehicleRegistration   String
+  pickupAddress         String
+  destinationFacilityId String
+  destinationFacility   Facility       @relation("DestinationDispatches", fields: [destinationFacilityId], references: [id])
+  dispatchedWeightKg    Float
+  receivedWeightKg      Float?
+  status                DispatchStatus @default(REGISTERED)
+  pickupProofHash       String?
+  deliveryProofHash     String?
+  pickupTime            DateTime?
+  deliveryTime          DateTime?
+  discrepancyNotes      String?
+  txHash                String?
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+
+  batches               DispatchBatch[]
+  handovers             Handover[]
+  receivingRecord       ReceivingRecord?
+
+  @@index([dispatchId])
+  @@index([status])
+  @@index([driverId])
+}
+
+model DispatchBatch {
+  id         String     @id @default(uuid())
+  dispatchId String
+  dispatch   Dispatch   @relation(fields: [dispatchId], references: [id], onDelete: Cascade)
+  batchId    String
+  batch      WasteBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@unique([dispatchId, batchId])
+}
+
+model Handover {
+  id             String    @id @default(uuid())
+  dispatchId     String
+  dispatch       Dispatch  @relation(fields: [dispatchId], references: [id], onDelete: Cascade)
+  senderUserId   String
+  senderUser     User      @relation("SenderHandovers", fields: [senderUserId], references: [id])
+  receiverUserId String?
+  receiverUser   User?     @relation("ReceiverHandovers", fields: [receiverUserId], references: [id])
+  handoverType   String    // "PICKUP" or "DELIVERY"
+  evidenceHash   String?
+  notes          String?
+  txHash         String?
+  timestamp      DateTime  @default(now())
+
+  @@index([dispatchId])
+}
+
+model ReceivingRecord {
+  id                String     @id @default(uuid())
+  batchId           String     @unique
+  batch             WasteBatch @relation(fields: [batchId], references: [id])
+  dispatchId        String     @unique
+  dispatch          Dispatch   @relation(fields: [dispatchId], references: [id])
+  facilityId        String
+  facility          Facility   @relation(fields: [facilityId], references: [id])
+  receiverUserId    String
+  receiverUser      User       @relation(fields: [receiverUserId], references: [id])
+  measuredWeightKg  Float
+  acceptedWeightKg  Float
+  rejectedWeightKg  Float      @default(0)
+  isDisputed        Boolean    @default(false)
+  discrepancyReason String?
+  inspectionNotes   String?
+  storageLocation   String?
+  evidenceHash      String?
+  txHash            String?
+  arrivalTime       DateTime   @default(now())
+  createdAt         DateTime   @default(now())
+
+  @@index([batchId])
+  @@index([dispatchId])
+}
+
+model ProcessingRecord {
+  id                   String     @id @default(uuid())
+  processingId         String     @unique // e.g. PROC-2026-001
+  sourceBatchId        String
+  sourceBatch          WasteBatch @relation(fields: [sourceBatchId], references: [id])
+  facilityId           String
+  facility             Facility   @relation(fields: [facilityId], references: [id])
+  workerUserId         String
+  workerUser           User       @relation("WorkerProcessings", fields: [workerUserId], references: [id])
+  supervisorUserId     String?
+  supervisorUser       User?      @relation("SupervisorProcessings", fields: [supervisorUserId], references: [id])
+  
+  inputWeightKg        Float
+  totalRecoveredKg     Float
+  residualKg           Float
+  documentedLossKg     Float
+  
+  massBalanceValid     Boolean    @default(true)
+  supervisorApproved   Boolean    @default(false)
+  supervisorRemarks    String?
+  evidenceHash         String?
+  notes                String?
+  txHash               String?
+  processedAt          DateTime   @default(now())
+  createdAt            DateTime   @default(now())
+
+  recoveredMaterials   RecoveredMaterial[]
+
+  @@index([processingId])
+  @@index([sourceBatchId])
+}
+
+model RecoveredMaterial {
+  id                 String           @id @default(uuid())
+  materialBatchId    String           @unique // e.g. MAT-COPPER-001
+  sourceBatchId      String
+  sourceBatch        WasteBatch       @relation(fields: [sourceBatchId], references: [id])
+  processingRecordId String
+  processingRecord   ProcessingRecord @relation(fields: [processingRecordId], references: [id])
+  materialType       String           // e.g. "Copper", "Aluminum", "Gold", "High-Grade Plastic"
+  recoveredWeightKg  Float
+  claimedWeightKg    Float            @default(0)
+  purityPercentage   Float?           @default(99.0)
+  location           String?
+  evidenceHash       String?
+  txHash             String?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  claims             RecoveryClaim[]
+
+  @@index([materialBatchId])
+  @@index([materialType])
+}
+
+model RecoveryClaim {
+  id              String            @id @default(uuid())
+  claimId         String            @unique // e.g. CLAIM-2026-001
+  materialBatchId String
+  materialBatch   RecoveredMaterial @relation(fields: [materialBatchId], references: [id])
+  claimantName    String
+  claimantOrg     String
+  claimedWeightKg Float
+  verified        Boolean           @default(true)
+  isDuplicateAlert Boolean          @default(false)
+  notes           String?
+  txHash          String?
+  claimedAt       DateTime          @default(now())
+
+  @@index([claimId])
+  @@index([materialBatchId])
+}
+
+model Product {
+  id                   String                 @id @default(uuid())
+  productId            String                 @unique // e.g. PROD-REFURB-001
+  serialNumber         String?                @unique // e.g. SN-DELL-883921
+  name                 String
+  brandModel           String?
+  sourceBatchId        String?
+  sourceBatch          WasteBatch?            @relation(fields: [sourceBatchId], references: [id])
+  condition            String                 // e.g. "Grade A - Pristine", "Grade B - Inspected"
+  refurbishmentDate    DateTime               @default(now())
+  replacedComponents   String?
+  inspectionReportHash String?
+  technicianApproved   Boolean                @default(true)
+  technicianName       String?
+  warrantyMonths       Int                    @default(6)
+  qrCodeData           String?
+  txHash               String?
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+
+  serviceRecords       ProductServiceRecord[]
+  ownershipEvents      OwnershipEvent[]
+
+  @@index([productId])
+  @@index([serialNumber])
+}
+
+model ProductServiceRecord {
+  id             String   @id @default(uuid())
+  productId      String
+  product        Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  serviceDate    DateTime @default(now())
+  serviceType    String   // "DIAGNOSTIC", "BATTERY_REPLACEMENT", "CLEANING", "OS_REFRESH"
+  description    String
+  technicianName String
+  createdAt      DateTime @default(now())
+
+  @@index([productId])
+}
+
+model OwnershipEvent {
+  id          String   @id @default(uuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  eventType   String   // "REGISTERED", "TRANSFERRED", "RECYCLED_AGAIN"
+  description String
+  timestamp   DateTime @default(now())
+
+  @@index([productId])
+}
+
+model EvidenceFile {
+  id             String   @id @default(uuid())
+  fileName       String
+  originalName   String
+  mimeType       String
+  fileSize       Int
+  sha256Hash     String
+  filePath       String
+  uploadedByUserId String?
+  uploadedByUser User?    @relation(fields: [uploadedByUserId], references: [id])
+  createdAt      DateTime @default(now())
+
+  @@index([sha256Hash])
+}
+
+model BlockchainTransaction {
+  id           String   @id @default(uuid())
+  txHash       String   @unique
+  functionName String
+  contractAddress String?
+  fromAddress  String?
+  blockNumber  Int?
+  status       String   // "CONFIRMED", "PENDING", "FAILED"
+  payloadJson  String?
+  timestamp    DateTime @default(now())
+
+  @@index([txHash])
+  @@index([functionName])
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  action      String   // e.g. "BATCH_REGISTERED", "DISCREPANCY_FLAGGED", "CLAIM_ATTEMPT_BLOCKED"
+  entityType  String
+  entityId    String
+  detailsJson String?
+  ipAddress   String?
+  timestamp   DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([action])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}

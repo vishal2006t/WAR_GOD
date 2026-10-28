@@ -1,0 +1,1509 @@
+{
+  "address": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+  "network": "localhost",
+  "chainId": 31337,
+  "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+  "deployedAt": "2026-10-28T15:26:59.004Z",
+  "abi": [
+    {
+      "inputs": [],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "batchId",
+          "type": "string"
+        }
+      ],
+      "name": "BatchAlreadyExists",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "batchId",
+          "type": "string"
+        }
+      ],
+      "name": "BatchNotFound",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "materialBatchId",
+          "type": "string"
+        },
+        {
+          "internalType": "uint256",
+          "name": "requested",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "available",
+          "type": "uint256"
+        }
+      ],
+      "name": "ClaimExceedsAvailableWeight",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "claimId",
+          "type": "string"
+        }
+      ],
+      "name": "DuplicateClaimId",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "batchId",
+          "type": "string"
+        },
+        {
+          "internalType": "enum EWasteRegistry.BatchStatus",
+          "name": "currentStatus",
+          "type": "uint8"
+        }
+      ],
+      "name": "InvalidStateTransition",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "inputWeight",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "calculatedSum",
+          "type": "uint256"
+        }
+      ],
+      "name": "MassBalanceMismatch",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "materialBatchId",
+          "type": "string"
+        }
+      ],
+      "name": "MaterialBatchNotFound",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "productId",
+          "type": "string"
+        }
+      ],
+      "name": "ProductAlreadyExists",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "productId",
+          "type": "string"
+        }
+      ],
+      "name": "ProductNotFound",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "caller",
+          "type": "address"
+        }
+      ],
+      "name": "Unauthorized",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "dispatchedWeight",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "receivedWeight",
+          "type": "uint256"
+        }
+      ],
+      "name": "WeightMismatchFlagged",
+      "type": "error"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "string",
+          "name": "batchId",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "category",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "weightGrams",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "registeredBy",
+          "type": "address"
+        }
+      ],
+      "name": "BatchRegistered",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "string",
+          "name": "entityId",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "reason",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "expectedWeight",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "actualWeight",
+          "type": "uint256"
+        }
+      ],
+      "name": "DiscrepancyLogged",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "string",
+          "name": "dispatchId",
+          "type": "string"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "driver",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "dispatchedWeightGrams",
+          "type": "uint256"
+        }
+      ],
+      "name": "DispatchCreated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "string",
+          "name": "dispatchId",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "receivedWeightGrams",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "bool",
+          "name": "disputed",
+          "type": "bool"
+        }
+      ],
+      "name": "DispatchReceived",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "string",
+          "name": "materialBatchId",
+          "type": "string"
+        },
+        {
+          "indexed": true,
+          "internalType": "string",
+          "name": "sourceBatchId",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "materialType",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "weightGrams",
+          "type": "uint256"
+        }
+      ],
+      "name": "MaterialRegistered",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "string",
+          "name": "processingId",
+          "type": "string"
+        },
+        {
+          "indexed": true,
+          "internalType": "string",
+          "name": "sourceBatchId",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "inputWeightGrams",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "bool",
+          "name": "massBalanceValid",
+          "type": "bool"
+        }
+      ],
+      "name": "ProcessingRecorded",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "string",
+          "name": "productId",
+          "type": "string"
+        },
+        {
+          "indexed": true,
+          "internalType": "string",
+          "name": "serialNumber",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "sourceBatchId",
+          "type": "string"
+        }
+      ],
+      "name": "ProductRegistered",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "string",
+          "name": "claimId",
+          "type": "string"
+        },
+        {
+          "indexed": true,
+          "internalType": "string",
+          "name": "materialBatchId",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "claimedWeightGrams",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "claimant",
+          "type": "string"
+        }
+      ],
+      "name": "RecoveryClaimApproved",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "admin",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "authorizedFacilities",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "authorizedTransporters",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "authorizedWorkers",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "name": "batches",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "batchId",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "category",
+          "type": "string"
+        },
+        {
+          "internalType": "uint256",
+          "name": "weightGrams",
+          "type": "uint256"
+        },
+        {
+          "internalType": "string",
+          "name": "evidenceHash",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "destinationFacility",
+          "type": "string"
+        },
+        {
+          "internalType": "address",
+          "name": "registeredBy",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "timestamp",
+          "type": "uint256"
+        },
+        {
+          "internalType": "enum EWasteRegistry.BatchStatus",
+          "name": "status",
+          "type": "uint8"
+        },
+        {
+          "internalType": "bool",
+          "name": "exists",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "claimId",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "materialBatchId",
+          "type": "string"
+        },
+        {
+          "internalType": "uint256",
+          "name": "claimWeightGrams",
+          "type": "uint256"
+        },
+        {
+          "internalType": "string",
+          "name": "claimant",
+          "type": "string"
+        }
+      ],
+      "name": "claimRecoveredMaterial",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "name": "claims",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "claimId",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "materialBatchId",
+          "type": "string"
+        },
+        {
+          "internalType": "uint256",
+          "name": "claimedWeightGrams",
+          "type": "uint256"
+        },
+        {
+          "internalType": "string",
+          "name": "claimant",
+          "type": "string"
+        },
+        {
+          "internalType": "uint256",
+          "name": "timestamp",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bool",
+          "name": "exists",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "dispatchId",
+          "type": "string"
+        },
+        {
+          "internalType": "string[]",
+          "name": "batchIds",
+          "type": "string[]"
+        },
+        {
+          "internalType": "address",
+          "name": "driver",
+          "type": "address"
+        },
+        {
+          "internalType": "string",
+          "name": "vehicleRegistration",
+          "type": "string"
+        },
+        {
+          "internalType": "uint256",
+          "name": "dispatchedWeightGrams",
+          "type": "uint256"
+        },
+        {
+          "internalType": "string",
+          "name": "pickupProofHash",
+          "type": "string"
+        }
+      ],
+      "name": "createDispatch",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "name": "dispatches",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "dispatchId",
+          "type": "string"
+        },
+        {
+          "internalType": "address",
+          "name": "driver",
+          "type": "address"
+        },
+        {
+          "internalType": "string",
+          "name": "vehicleRegistration",
+          "type": "string"
+        },
+        {
+          "internalType": "uint256",
+          "name": "dispatchedWeightGrams",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "receivedWeightGrams",
+          "type": "uint256"
+        },
+        {
+          "internalType": "string",
+          "name": "pickupProofHash",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "deliveryProofHash",
+          "type": "string"
+        },
+        {
+          "internalType": "bool",
+          "name": "isDelivered",
+          "type": "bool"
+        },
+        {
+          "internalType": "bool",
+          "name": "isDisputed",
+          "type": "bool"
+        },
+        {
+          "internalType": "uint256",
+          "name": "timestamp",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bool",
+          "name": "exists",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "batchId",
+          "type": "string"
+        }
+      ],
+      "name": "getBatch",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "string",
+              "name": "batchId",
+              "type": "string"
+            },
+            {
+              "internalType": "string",
+              "name": "category",
+              "type": "string"
+            },
+            {
+              "internalType": "uint256",
+              "name": "weightGrams",
+              "type": "uint256"
+            },
+            {
+              "internalType": "string",
+              "name": "evidenceHash",
+              "type": "string"
+            },
+            {
+              "internalType": "string",
+              "name": "destinationFacility",
+              "type": "string"
+            },
+            {
+              "internalType": "address",
+              "name": "registeredBy",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "timestamp",
+              "type": "uint256"
+            },
+            {
+              "internalType": "enum EWasteRegistry.BatchStatus",
+              "name": "status",
+              "type": "uint8"
+            },
+            {
+              "internalType": "bool",
+              "name": "exists",
+              "type": "bool"
+            }
+          ],
+          "internalType": "struct EWasteRegistry.WasteBatch",
+          "name": "",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "dispatchId",
+          "type": "string"
+        }
+      ],
+      "name": "getDispatch",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "string",
+              "name": "dispatchId",
+              "type": "string"
+            },
+            {
+              "internalType": "string[]",
+              "name": "batchIds",
+              "type": "string[]"
+            },
+            {
+              "internalType": "address",
+              "name": "driver",
+              "type": "address"
+            },
+            {
+              "internalType": "string",
+              "name": "vehicleRegistration",
+              "type": "string"
+            },
+            {
+              "internalType": "uint256",
+              "name": "dispatchedWeightGrams",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "receivedWeightGrams",
+              "type": "uint256"
+            },
+            {
+              "internalType": "string",
+              "name": "pickupProofHash",
+              "type": "string"
+            },
+            {
+              "internalType": "string",
+              "name": "deliveryProofHash",
+              "type": "string"
+            },
+            {
+              "internalType": "bool",
+              "name": "isDelivered",
+              "type": "bool"
+            },
+            {
+              "internalType": "bool",
+              "name": "isDisputed",
+              "type": "bool"
+            },
+            {
+              "internalType": "uint256",
+              "name": "timestamp",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bool",
+              "name": "exists",
+              "type": "bool"
+            }
+          ],
+          "internalType": "struct EWasteRegistry.DispatchRecord",
+          "name": "",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "materialBatchId",
+          "type": "string"
+        }
+      ],
+      "name": "getMaterialBatch",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "string",
+              "name": "materialBatchId",
+              "type": "string"
+            },
+            {
+              "internalType": "string",
+              "name": "sourceBatchId",
+              "type": "string"
+            },
+            {
+              "internalType": "string",
+              "name": "materialType",
+              "type": "string"
+            },
+            {
+              "internalType": "uint256",
+              "name": "recoveredWeightGrams",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "claimedWeightGrams",
+              "type": "uint256"
+            },
+            {
+              "internalType": "string",
+              "name": "evidenceHash",
+              "type": "string"
+            },
+            {
+              "internalType": "uint256",
+              "name": "timestamp",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bool",
+              "name": "exists",
+              "type": "bool"
+            }
+          ],
+          "internalType": "struct EWasteRegistry.RecoveredMaterialBatch",
+          "name": "",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "processingId",
+          "type": "string"
+        }
+      ],
+      "name": "getProcessing",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "string",
+              "name": "processingId",
+              "type": "string"
+            },
+            {
+              "internalType": "string",
+              "name": "sourceBatchId",
+              "type": "string"
+            },
+            {
+              "internalType": "uint256",
+              "name": "inputWeightGrams",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "totalRecoveredGrams",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "residualGrams",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "documentedLossGrams",
+              "type": "uint256"
+            },
+            {
+              "internalType": "string",
+              "name": "evidenceHash",
+              "type": "string"
+            },
+            {
+              "internalType": "address",
+              "name": "supervisor",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "timestamp",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bool",
+              "name": "massBalanceValid",
+              "type": "bool"
+            },
+            {
+              "internalType": "bool",
+              "name": "exists",
+              "type": "bool"
+            }
+          ],
+          "internalType": "struct EWasteRegistry.ProcessingRecord",
+          "name": "",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "name": "processings",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "processingId",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "sourceBatchId",
+          "type": "string"
+        },
+        {
+          "internalType": "uint256",
+          "name": "inputWeightGrams",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "totalRecoveredGrams",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "residualGrams",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "documentedLossGrams",
+          "type": "uint256"
+        },
+        {
+          "internalType": "string",
+          "name": "evidenceHash",
+          "type": "string"
+        },
+        {
+          "internalType": "address",
+          "name": "supervisor",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "timestamp",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bool",
+          "name": "massBalanceValid",
+          "type": "bool"
+        },
+        {
+          "internalType": "bool",
+          "name": "exists",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "name": "products",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "productId",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "serialNumber",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "sourceBatchId",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "condition",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "inspectionHash",
+          "type": "string"
+        },
+        {
+          "internalType": "uint256",
+          "name": "refurbishmentTimestamp",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bool",
+          "name": "exists",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "processingId",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "sourceBatchId",
+          "type": "string"
+        },
+        {
+          "internalType": "uint256",
+          "name": "inputWeightGrams",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "totalRecoveredGrams",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "residualGrams",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "documentedLossGrams",
+          "type": "uint256"
+        },
+        {
+          "internalType": "string",
+          "name": "evidenceHash",
+          "type": "string"
+        }
+      ],
+      "name": "recordProcessing",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "dispatchId",
+          "type": "string"
+        },
+        {
+          "internalType": "uint256",
+          "name": "receivedWeightGrams",
+          "type": "uint256"
+        },
+        {
+          "internalType": "string",
+          "name": "deliveryProofHash",
+          "type": "string"
+        },
+        {
+          "internalType": "bool",
+          "name": "disputeWeight",
+          "type": "bool"
+        }
+      ],
+      "name": "recordReceiving",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "name": "recoveredMaterials",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "materialBatchId",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "sourceBatchId",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "materialType",
+          "type": "string"
+        },
+        {
+          "internalType": "uint256",
+          "name": "recoveredWeightGrams",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "claimedWeightGrams",
+          "type": "uint256"
+        },
+        {
+          "internalType": "string",
+          "name": "evidenceHash",
+          "type": "string"
+        },
+        {
+          "internalType": "uint256",
+          "name": "timestamp",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bool",
+          "name": "exists",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "batchId",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "category",
+          "type": "string"
+        },
+        {
+          "internalType": "uint256",
+          "name": "weightGrams",
+          "type": "uint256"
+        },
+        {
+          "internalType": "string",
+          "name": "evidenceHash",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "destinationFacility",
+          "type": "string"
+        }
+      ],
+      "name": "registerBatch",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "materialBatchId",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "sourceBatchId",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "materialType",
+          "type": "string"
+        },
+        {
+          "internalType": "uint256",
+          "name": "recoveredWeightGrams",
+          "type": "uint256"
+        },
+        {
+          "internalType": "string",
+          "name": "evidenceHash",
+          "type": "string"
+        }
+      ],
+      "name": "registerRecoveredMaterial",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "productId",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "serialNumber",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "sourceBatchId",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "condition",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "inspectionHash",
+          "type": "string"
+        }
+      ],
+      "name": "registerRefurbishedProduct",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "name": "serialToProductId",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "facility",
+          "type": "address"
+        },
+        {
+          "internalType": "bool",
+          "name": "authorized",
+          "type": "bool"
+        }
+      ],
+      "name": "setFacilityAuthorization",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "transporter",
+          "type": "address"
+        },
+        {
+          "internalType": "bool",
+          "name": "authorized",
+          "type": "bool"
+        }
+      ],
+      "name": "setTransporterAuthorization",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "worker",
+          "type": "address"
+        },
+        {
+          "internalType": "bool",
+          "name": "authorized",
+          "type": "bool"
+        }
+      ],
+      "name": "setWorkerAuthorization",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "serialNumber",
+          "type": "string"
+        }
+      ],
+      "name": "verifyBySerial",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "string",
+              "name": "productId",
+              "type": "string"
+            },
+            {
+              "internalType": "string",
+              "name": "serialNumber",
+              "type": "string"
+            },
+            {
+              "internalType": "string",
+              "name": "sourceBatchId",
+              "type": "string"
+            },
+            {
+              "internalType": "string",
+              "name": "condition",
+              "type": "string"
+            },
+            {
+              "internalType": "string",
+              "name": "inspectionHash",
+              "type": "string"
+            },
+            {
+              "internalType": "uint256",
+              "name": "refurbishmentTimestamp",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bool",
+              "name": "exists",
+              "type": "bool"
+            }
+          ],
+          "internalType": "struct EWasteRegistry.RefurbishedProduct",
+          "name": "",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "productId",
+          "type": "string"
+        }
+      ],
+      "name": "verifyProduct",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "string",
+              "name": "productId",
+              "type": "string"
+            },
+            {
+              "internalType": "string",
+              "name": "serialNumber",
+              "type": "string"
+            },
+            {
+              "internalType": "string",
+              "name": "sourceBatchId",
+              "type": "string"
+            },
+            {
+              "internalType": "string",
+              "name": "condition",
+              "type": "string"
+            },
+            {
+              "internalType": "string",
+              "name": "inspectionHash",
+              "type": "string"
+            },
+            {
+              "internalType": "uint256",
+              "name": "refurbishmentTimestamp",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bool",
+              "name": "exists",
+              "type": "bool"
+            }
+          ],
+          "internalType": "struct EWasteRegistry.RefurbishedProduct",
+          "name": "",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ]
+}
