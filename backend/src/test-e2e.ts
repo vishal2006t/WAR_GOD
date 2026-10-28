@@ -24,9 +24,14 @@ async function request(path: string, options: { method?: string; body?: any; tok
 async function runTests() {
   console.log("=== ECOTRACE END-TO-END AUTOMATED VERIFICATION ===");
 
-  // 1. Health check
+  // 1. Health check & Environment Audit
   const health = await request("/health");
-  console.log("[1] Health Check:", health.data.status === "healthy" ? "PASS" : "FAIL");
+  console.log(
+    "[1] Health Check & Environment Audit:",
+    health.data.status === "healthy" && health.data.database.type === "PostgreSQL"
+      ? `PASS (DB: ${health.data.database.type}, QpiAI Mode: ${health.data.qpiaiOpt.mode})`
+      : "FAIL"
+  );
 
   // 2. Auth: Test 6 Role Logins
   const roles = [
@@ -162,6 +167,15 @@ async function runTests() {
     "[10] Admin Live Metrics Aggregation:",
     analyticsRes.ok && analyticsRes.data.metrics.totalBatches > 0
       ? `PASS (${analyticsRes.data.metrics.totalBatches} batches, ${analyticsRes.data.metrics.totalCollectedWeightKg} kg collected)`
+      : "FAIL"
+  );
+
+  // 11. Test QpiAI Opt / Heuristic Route Optimization
+  const routeRes = await request("/api/dispatches/optimize-routes", { token: tokens["DRIVER"] });
+  console.log(
+    "[11] Dispatch Route Optimization Engine:",
+    routeRes.ok && routeRes.data.optimization.status === "OPTIMIZED"
+      ? `PASS (Engine: ${routeRes.data.optimization.engine}, Est. Savings: ${routeRes.data.optimization.co2SavingsKg} kg CO2e)`
       : "FAIL"
   );
 

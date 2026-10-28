@@ -6,6 +6,7 @@ import { Role, DispatchStatus, BatchStatus } from "@prisma/client";
 import { blockchainService } from "../services/blockchain";
 import { logAudit } from "../services/audit";
 import { computeSha256 } from "../utils/hash";
+import { qpiAiService } from "../services/qpiai";
 
 const router = Router();
 
@@ -65,6 +66,23 @@ router.get("/drivers", authenticateToken, async (req: Request, res: Response) =>
       select: { id: true, fullName: true, phone: true, organization: true },
     });
     res.json({ success: true, drivers });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/dispatches/optimize-routes (QpiAI Opt / Heuristic Dispatch Routing)
+router.get("/optimize-routes", authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const defaultPoints = [
+      { name: "Electronic City Depot 4", location: "Bengaluru South", weightKg: 150 },
+      { name: "Whitefield Aggregator Hub", location: "Bengaluru East", weightKg: 220 },
+      { name: "Peenya Industrial Scrap Center", location: "Bengaluru North", weightKg: 95 },
+    ];
+    const destination = "Apex E-Waste Disassembly & Smelting Hub";
+
+    const result = await qpiAiService.optimizeDispatchRoute(defaultPoints, destination);
+    res.json({ success: true, optimization: result });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }

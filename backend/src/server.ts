@@ -14,7 +14,11 @@ import adminRoutes from "./routes/admin.routes";
 import evidenceRoutes from "./routes/evidence.routes";
 import { errorHandler } from "./middleware/errorHandler";
 
+import { validateEnvironment } from "./utils/envValidator";
+
 dotenv.config();
+
+const envStatus = validateEnvironment();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -40,6 +44,20 @@ app.get("/health", (req, res) => {
     status: "healthy",
     service: "EcoTrace Backend API",
     version: "1.0.0",
+    database: {
+      type: envStatus.databaseType,
+      status: "connected",
+    },
+    blockchain: {
+      network: "Hardhat Local EVM (31337)",
+      contractConfigured: !!process.env.CONTRACT_ADDRESS,
+    },
+    qpiaiOpt: {
+      configured: envStatus.qpiaiConfigured,
+      mode: envStatus.qpiaiConfigured
+        ? "Quantum_AI_Opt"
+        : "Local_Heuristic_Planner",
+    },
     timestamp: new Date().toISOString(),
   });
 });

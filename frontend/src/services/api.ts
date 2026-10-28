@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = (import.meta as any).env?.VITE_API_URL || "http://localhost:5000/api";
 
 function getAuthHeader(): Record<string, string> {
   const token = localStorage.getItem("ecotrace_token");

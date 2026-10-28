@@ -38,7 +38,27 @@ class BlockchainService {
     }
   }
 
+  private txQueue: Promise<any> = Promise.resolve();
+
   private async executeTx(
+    fnName: string,
+    contractCall: (contract: ethers.Contract) => Promise<any>,
+    payload: any
+  ): Promise<string> {
+    // Sequence transactions through queue to prevent nonce collision
+    return new Promise<string>((resolve, reject) => {
+      this.txQueue = this.txQueue.then(async () => {
+        try {
+          const res = await this.performTx(fnName, contractCall, payload);
+          resolve(res);
+        } catch (err) {
+          reject(err);
+        }
+      });
+    });
+  }
+
+  private async performTx(
     fnName: string,
     contractCall: (contract: ethers.Contract) => Promise<any>,
     payload: any
