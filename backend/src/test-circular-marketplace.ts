@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import path from "path";
 import {
   ProductListingModel,
   DealerOfferModel,
@@ -14,7 +15,7 @@ import {
   WasteBatchModel,
 } from "./models";
 
-dotenv.config();
+dotenv.config({ path: path.join(__dirname, "../.env") });
 
 const JWT_SECRET = process.env.JWT_SECRET || "ecotrace-super-secure-hackathon-jwt-secret-2026";
 const API_BASE = "http://localhost:5000/api/marketplace";
@@ -48,6 +49,7 @@ async function runTests() {
   let dealer = await UserModel.findOne({ role: "DEALER" });
   let driver = await UserModel.findOne({ role: "DRIVER" });
   let factory = await UserModel.findOne({ role: "FACTORY" });
+  let admin = await UserModel.findOne({ role: "ADMIN" });
 
   if (!customer) {
     customer = await UserModel.create({
@@ -89,11 +91,21 @@ async function runTests() {
       status: "ACTIVE",
     });
   }
+  if (!admin) {
+    admin = await UserModel.create({
+      fullName: "System Admin",
+      email: "admin@ecotrace.org",
+      password: "hashedpassword",
+      role: "ADMIN",
+      status: "ACTIVE",
+    });
+  }
 
   const customerToken = makeToken(customer);
   const dealerToken = makeToken(dealer);
   const driverToken = makeToken(driver);
   const factoryToken = makeToken(factory);
+  const adminToken = makeToken(admin);
 
   // -------------------------------------------------------------
   // TEST 1: Customer creates old electronics listing
@@ -130,6 +142,50 @@ async function runTests() {
   }
   const createdListing = listingData.data;
   console.log(` Created listing: ${createdListing.listingId} (Status: ${createdListing.status})`);
+  if (createdListing.status !== "PENDING_INSPECTION") {
+    throw new Error(`Expected initial status to be PENDING_INSPECTION, got ${createdListing.status}`);
+  }
+
+  // -------------------------------------------------------------
+  // TEST 1b: Verify unapproved listing is hidden from Dealer Nearby Listings
+  // -------------------------------------------------------------
+  console.log("\n[TEST 1b] Verifying unapproved PENDING_INSPECTION device is hidden from dealer nearby list...");
+  const unapprovedNearbyRes = await fetch(
+    `${API_BASE}/listings/nearby?latitude=12.9716&longitude=77.5946&maxDistanceKm=20`,
+    {
+      headers: { Authorization: `Bearer ${dealerToken}` },
+    }
+  );
+  const unapprovedNearbyData = await unapprovedNearbyRes.json() as any;
+  if (!unapprovedNearbyData.success) {
+    throw new Error(`Failed to fetch nearby listings: ${JSON.stringify(unapprovedNearbyData)}`);
+  }
+  const foundPending = unapprovedNearbyData.data.find((l: any) => l.listingId === createdListing.listingId);
+  if (foundPending) {
+    throw new Error(`SECURITY VIOLATION: Unapproved PENDING_INSPECTION listing appeared in dealer nearby list!`);
+  }
+  console.log(` Verified: Device correctly withheld from dealer nearby listings while PENDING_INSPECTION.`);
+
+  // -------------------------------------------------------------
+  // TEST 1c: Admin/Inspector reviews and approves listing
+  // -------------------------------------------------------------
+  console.log("\n[TEST 1c] Admin inspects and approves customer listing...");
+  const reviewRes = await fetch(`${API_BASE}/listings/${createdListing.listingId}/review`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${adminToken}`,
+    },
+    body: JSON.stringify({
+      decision: "APPROVED",
+      reviewNotes: "Passed technical diagnostic checks and battery integrity verification.",
+    }),
+  });
+  const reviewData = await reviewRes.json() as any;
+  if (!reviewData.success || reviewData.data.status !== "APPROVED") {
+    throw new Error(`Failed to approve listing: ${JSON.stringify(reviewData)}`);
+  }
+  console.log(` Listing successfully reviewed and transitioned to APPROVED!`);
 
   // -------------------------------------------------------------
   // TEST 2: Dealer searches nearby listings & verifies privacy mask
@@ -147,7 +203,7 @@ async function runTests() {
   }
   const foundListing = nearbyData.data.find((l: any) => l.listingId === createdListing.listingId);
   if (!foundListing) {
-    throw new Error(`Created listing not found in dealer's nearby list`);
+    throw new Error(`Approved listing not found in dealer's nearby list`);
   }
   console.log(
     ` Found nearby listing! Calculated distance: ${foundListing.distanceKm} km. Approx location: '${foundListing.approximateLocation}'`

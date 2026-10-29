@@ -114,11 +114,8 @@ router.post(
         };
       }
 
-      // Status lifecycle: Dealer recycle workflows use SUBMITTED; P2P marketplace requires review (PENDING_INSPECTION)
-      let initialStatus = "PENDING_INSPECTION";
-      if (listingType === "DEALER_RECYCLE" || requestedStatus === "SUBMITTED") {
-        initialStatus = "SUBMITTED";
-      }
+      // Status lifecycle: All new customer device submissions start in PENDING_INSPECTION (inspection review gate)
+      const initialStatus = "PENDING_INSPECTION";
 
       const effectiveTitle = (title && title.trim()) || `${brand.trim()} ${model.trim()}`;
 
@@ -262,9 +259,9 @@ router.get(
       const limitNum = Math.min(100, Math.max(1, parseInt(limit as string, 10) || 20));
       const skip = (pageNum - 1) * limitNum;
 
-      // Base query: only active listings
+      // Base query: only eligible, approved active listings (pending and rejected listings are strictly excluded)
       const query: any = {
-        status: { $in: ["SUBMITTED", "OFFERS_RECEIVED", "OFFER_ACCEPTED"] },
+        status: { $in: ["APPROVED", "LISTED", "OFFERS_RECEIVED", "OFFER_ACCEPTED"] },
       };
 
       if (category && category !== "ALL") {
@@ -751,10 +748,20 @@ router.post(
         return;
       }
 
-      if (["OFFER_ACCEPTED", "PICKUP_SCHEDULED", "IN_TRANSIT", "COLLECTED", "CANCELLED"].includes(listing.status)) {
+      if (
+        [
+          "PENDING_INSPECTION",
+          "REJECTED",
+          "OFFER_ACCEPTED",
+          "PICKUP_SCHEDULED",
+          "IN_TRANSIT",
+          "COLLECTED",
+          "CANCELLED",
+        ].includes(listing.status)
+      ) {
         res.status(400).json({
           success: false,
-          error: `Cannot make an offer on a listing with status ${listing.status}`,
+          error: `Cannot make an offer on a listing with status ${listing.status}. Only approved, eligible listings accept offers.`,
         });
         return;
       }
@@ -798,7 +805,7 @@ router.post(
 
       // Update listing
       listing.offersCount = (listing.offersCount || 0) + 1;
-      if (listing.status === "SUBMITTED") {
+      if (listing.status === "SUBMITTED" || listing.status === "APPROVED" || listing.status === "LISTED") {
         listing.status = "OFFERS_RECEIVED";
       }
       await listing.save();
