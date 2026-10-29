@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import { prisma } from "../utils/prisma";
-import { Role } from "@prisma/client";
+import { UserModel, Role } from "../models";
+export { Role };
 
 const JWT_SECRET = process.env.JWT_SECRET || "ecotrace-super-secure-hackathon-jwt-secret-2026";
 
@@ -22,7 +22,7 @@ declare global {
   }
 }
 
-export function generateToken(user: AuthenticatedUser): string {
+export function generateToken(user: { id: string; email: string; fullName: string; role: string; facilityId?: string | null }): string {
   return jwt.sign(
     {
       id: user.id,
@@ -42,7 +42,9 @@ export async function authenticateToken(
   next: NextFunction
 ): Promise<void> {
   const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : null;
+  const token =
+    (authHeader && authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : null) ||
+    (typeof req.query.token === "string" ? req.query.token : null);
 
   if (!token) {
     res.status(401).json({ success: false, error: "Access denied. Authentication token required." });
@@ -51,25 +53,29 @@ export async function authenticateToken(
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as AuthenticatedUser;
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.id },
-      select: {
-        id: true,
-        email: true,
-        fullName: true,
-        role: true,
-        facilityId: true,
-        organization: true,
-        status: true,
-      },
-    });
+    const userDoc = await UserModel.findById(decoded.id).select(
+      "_id email fullName role facilityId organization status isArchived"
+    );
 
-    if (!user || user.status === "SUSPENDED") {
-      res.status(403).json({ success: false, error: "User account suspended or not found." });
+    if (
+      !userDoc ||
+      userDoc.status === "SUSPENDED" ||
+      userDoc.status === "INACTIVE" ||
+      userDoc.status === "ARCHIVED" ||
+      userDoc.isArchived
+    ) {
+      res.status(403).json({ success: false, error: "User account suspended, deactivated, or not found." });
       return;
     }
 
-    req.user = user;
+    req.user = {
+      id: userDoc._id.toString(),
+      email: userDoc.email,
+      fullName: userDoc.fullName,
+      role: userDoc.role as Role,
+      facilityId: userDoc.facilityId?.toString(),
+      organization: userDoc.organization,
+    };
     next();
   } catch (err) {
     res.status(403).json({ success: false, error: "Invalid or expired authentication token." });

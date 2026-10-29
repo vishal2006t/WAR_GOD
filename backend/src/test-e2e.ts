@@ -28,9 +28,9 @@ async function runTests() {
   const health = await request("/health");
   console.log(
     "[1] Health Check & Environment Audit:",
-    health.data.status === "healthy" && health.data.database.type === "PostgreSQL"
+    health.data.status === "healthy" && health.data.database.type === "MongoDB"
       ? `PASS (DB: ${health.data.database.type}, QpiAI Mode: ${health.data.qpiaiOpt.mode})`
-      : "FAIL"
+      : `FAIL (DB: ${health.data.database?.type})`
   );
 
   // 2. Auth: Test 6 Role Logins

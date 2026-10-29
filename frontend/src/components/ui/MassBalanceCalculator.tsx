@@ -23,21 +23,21 @@ export const MassBalanceCalculator: React.FC<MassBalanceProps> = ({
   const lossPercent = inputWeightKg > 0 ? ((documentedLossKg / inputWeightKg) * 100).toFixed(1) : "0.0";
 
   return (
-    <div className="glass-panel p-5 rounded-xl border border-slate-700/80">
-      <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+    <div className="bg-white p-5 rounded-2xl border border-[#D7E5DB] shadow-sm">
+      <div className="flex items-center justify-between pb-3 border-b border-[#D7E5DB]">
         <div className="flex items-center gap-2">
-          <Scale className="w-5 h-5 text-emerald-400" />
-          <h4 className="text-sm font-bold text-white">Mass-Balance Reconciliation Engine</h4>
+          <Scale className="w-5 h-5 text-[#075B46]" />
+          <h4 className="text-sm font-serif font-bold text-[#173C32]">Mass-Balance Reconciliation Engine</h4>
         </div>
         <div className="flex items-center gap-2">
           {isBalanced ? (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
-              <CheckCircle2 className="w-3.5 h-3.5" />
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#E5F5EA] text-[#075B46] border border-[#D7E5DB]">
+              <CheckCircle2 className="w-3.5 h-3.5 text-[#075B46]" />
               Reconciled (100% Balanced)
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-500/20 text-rose-400 border border-rose-500/40 animate-pulse">
-              <AlertTriangle className="w-3.5 h-3.5" />
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200 animate-pulse">
+              <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
               Unbalanced ({discrepancy} kg discrepancy)
             </span>
           )}
@@ -46,14 +46,14 @@ export const MassBalanceCalculator: React.FC<MassBalanceProps> = ({
 
       {/* Visual Balance Bar */}
       <div className="mt-4">
-        <div className="flex justify-between text-xs text-slate-400 mb-1.5 font-mono">
+        <div className="flex justify-between text-xs text-[#6B7C74] mb-1.5 font-mono">
           <span>Input: {inputWeightKg.toFixed(2)} kg</span>
           <span>Accounted: {totalAccountedKg.toFixed(2)} kg</span>
         </div>
-        <div className="h-4 w-full bg-slate-900 rounded-full overflow-hidden flex p-0.5 border border-slate-800">
+        <div className="h-4 w-full bg-[#EDF7EF] rounded-full overflow-hidden flex p-0.5 border border-[#D7E5DB]">
           <div
             style={{ width: `${Math.min(100, Number(recoveryYield))}%` }}
-            className="bg-emerald-500 h-full rounded-l-full transition-all duration-300"
+            className="bg-[#075B46] h-full rounded-l-full transition-all duration-300"
             title={`Recovered Output: ${recoveredTotalKg}kg (${recoveryYield}%)`}
           />
           <div
@@ -70,22 +70,22 @@ export const MassBalanceCalculator: React.FC<MassBalanceProps> = ({
       </div>
 
       {/* Breakdown Metrics */}
-      <div className="grid grid-cols-4 gap-3 mt-4 text-center">
-        <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800">
-          <p className="text-[10px] text-slate-400 uppercase font-medium">Input Waste</p>
-          <p className="text-sm font-bold text-white mt-1">{inputWeightKg} kg</p>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 text-center">
+        <div className="p-3 rounded-xl bg-[#EDF7EF] border border-[#D7E5DB]">
+          <p className="text-[10px] text-[#6B7C74] uppercase font-semibold">Input Waste</p>
+          <p className="text-sm font-bold text-[#173C32] mt-1">{inputWeightKg} kg</p>
         </div>
-        <div className="p-2.5 rounded-lg bg-emerald-950/30 border border-emerald-500/20">
-          <p className="text-[10px] text-emerald-400 uppercase font-medium">Recovered Yield</p>
-          <p className="text-sm font-bold text-emerald-300 mt-1">{recoveredTotalKg} kg ({recoveryYield}%)</p>
+        <div className="p-3 rounded-xl bg-[#E5F5EA] border border-[#D7E5DB]">
+          <p className="text-[10px] text-[#075B46] uppercase font-semibold">Recovered Yield</p>
+          <p className="text-sm font-bold text-[#075B46] mt-1">{recoveredTotalKg} kg ({recoveryYield}%)</p>
         </div>
-        <div className="p-2.5 rounded-lg bg-amber-950/30 border border-amber-500/20">
-          <p className="text-[10px] text-amber-400 uppercase font-medium">Residual Waste</p>
-          <p className="text-sm font-bold text-amber-300 mt-1">{residualWasteKg} kg ({residualPercent}%)</p>
+        <div className="p-3 rounded-xl bg-amber-50 border border-amber-200">
+          <p className="text-[10px] text-amber-700 uppercase font-semibold">Residual Waste</p>
+          <p className="text-sm font-bold text-amber-800 mt-1">{residualWasteKg} kg ({residualPercent}%)</p>
         </div>
-        <div className="p-2.5 rounded-lg bg-rose-950/30 border border-rose-500/20">
-          <p className="text-[10px] text-rose-400 uppercase font-medium">Documented Loss</p>
-          <p className="text-sm font-bold text-rose-300 mt-1">{documentedLossKg} kg ({lossPercent}%)</p>
+        <div className="p-3 rounded-xl bg-rose-50 border border-rose-200">
+          <p className="text-[10px] text-rose-700 uppercase font-semibold">Documented Loss</p>
+          <p className="text-sm font-bold text-rose-800 mt-1">{documentedLossKg} kg ({lossPercent}%)</p>
         </div>
       </div>
     </div>

@@ -25,7 +25,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles, children 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-10 h-10 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-[#075B46]/20 border-t-[#075B46] rounded-full animate-spin" />
       </div>
     );
   }
@@ -37,12 +37,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles, children 
 
   if (!allowedRoles.includes(user.role)) {
     return (
-      <div className="max-w-md mx-auto my-16 p-8 glass-card rounded-2xl border border-rose-500/40 text-center space-y-4">
-        <h3 className="text-xl font-bold text-white">Access Denied</h3>
-        <p className="text-xs text-slate-300">
-          Your current account role <code className="text-emerald-400 font-bold">{user.role}</code> is not authorized for this portal.
+      <div className="max-w-md mx-auto my-16 p-8 glass-card rounded-2xl border border-rose-200 text-center space-y-4 shadow-card">
+        <h3 className="text-xl font-serif text-[#173C32]">Access Denied</h3>
+        <p className="text-xs text-[#6B7C74]">
+          Your current account role <code className="text-[#075B46] font-bold">{user.role}</code> is not authorized for this portal.
         </p>
-        <p className="text-xs text-slate-400">Required: {allowedRoles.join(", ")}</p>
+        <p className="text-xs text-[#6B7C74]">Required: {allowedRoles.join(", ")}</p>
         <Navigate to={`/${user.role.toLowerCase()}/dashboard`} replace />
       </div>
     );
@@ -58,18 +58,50 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles, children 
   );
 };
 
+const PublicVerifyWrapper: React.FC = () => {
+  const { user } = useAuth();
+  if (user) {
+    return (
+      <div className="flex">
+        <RoleSidebar />
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto overflow-y-auto">
+          <PublicVerifyPage />
+        </main>
+      </div>
+    );
+  }
+  return (
+    <main className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+      <PublicVerifyPage />
+    </main>
+  );
+};
+
 export const App: React.FC = () => {
   return (
-    <div className="min-h-screen bg-[#0B0F17] flex flex-col">
+    <div className="min-h-screen bg-[#F7FBF7] text-[#173C32] flex flex-col">
       <Navbar />
       <div className="flex-1">
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<LandingPage />} />
-          <Route path="/verify" element={<PublicVerifyPage />} />
+          <Route path="/verify" element={<PublicVerifyWrapper />} />
 
-          {/* 6 Role-Specific Login Routes */}
+          {/* Role-Specific Login Routes & Shorthands */}
+          <Route path="/login" element={<Navigate to="/login/admin" replace />} />
+          <Route path="/driver/login" element={<Navigate to="/login/driver" replace />} />
+          <Route path="/dealer/login" element={<Navigate to="/login/dealer" replace />} />
+          <Route path="/factory/login" element={<Navigate to="/login/factory" replace />} />
           <Route path="/login/:roleParam" element={<LoginPage />} />
+
+          {/* Direct Portal Shorthands */}
+          <Route path="/driver" element={<Navigate to="/driver/dashboard" replace />} />
+          <Route path="/dealer" element={<Navigate to="/dealer/dashboard" replace />} />
+          <Route path="/factory" element={<Navigate to="/factory/dashboard" replace />} />
+          <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+          <Route path="/worker" element={<Navigate to="/worker/dashboard" replace />} />
+          <Route path="/customer" element={<Navigate to="/customer/dashboard" replace />} />
+          <Route path="/marketplace" element={<Navigate to="/customer/dashboard#marketplace" replace />} />
 
           {/* 6 Role-Specific Protected Dashboards */}
           <Route

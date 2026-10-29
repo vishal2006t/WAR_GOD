@@ -1,26 +1,40 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
-import { prisma } from "../utils/prisma";
+import mongoose from "mongoose";
 import { authenticateToken, requireRole } from "../middleware/auth";
-import { Role, BatchStatus } from "@prisma/client";
+import {
+  Role,
+  BatchStatus,
+  WasteBatchModel,
+  ProcessingRecordModel,
+  RecoveredMaterialModel,
+  RecoveryClaimModel,
+  FacilityModel,
+  UserModel,
+  WasteCategoryModel,
+  ReceivingRecordModel,
+} from "../models";
 import { blockchainService } from "../services/blockchain";
 import { validateMassBalance } from "../utils/massBalance";
 import { logAudit } from "../services/audit";
 import { computeSha256 } from "../utils/hash";
+import { sendNotification } from "../services/notification";
 
 const router = Router();
 
 const processingSchema = z.object({
-  sourceBatchId: z.string().uuid(),
+  sourceBatchId: z.string().min(1),
   inputWeightKg: z.number().positive(),
-  materials: z.array(
-    z.object({
-      materialType: z.string().min(2),
-      weightKg: z.number().positive(),
-      purityPercentage: z.number().min(0).max(100).default(99.0),
-      location: z.string().default("Facility Smelting Vault"),
-    })
-  ).min(1),
+  materials: z
+    .array(
+      z.object({
+        materialType: z.string().min(2),
+        weightKg: z.number().positive(),
+        purityPercentage: z.number().min(0).max(100).default(99.0),
+        location: z.string().default("Facility Smelting Vault"),
+      })
+    )
+    .min(1),
   residualKg: z.number().nonnegative(),
   documentedLossKg: z.number().nonnegative(),
   notes: z.string().optional(),
@@ -40,22 +54,37 @@ router.get(
   async (req: Request, res: Response) => {
     try {
       const where: any = {
-        status: { in: [BatchStatus.RECEIVED, BatchStatus.DISPUTED] },
+        status: { $in: [BatchStatus.RECEIVED, BatchStatus.DISPUTED] },
       };
 
       if (req.user!.role === Role.WORKER && req.user!.facilityId) {
         where.destinationFacilityId = req.user!.facilityId;
       }
 
-      const batches = await prisma.wasteBatch.findMany({
-        where,
-        include: {
-          category: true,
-          receivingRecord: true,
-          destinationFacility: true,
-        },
-        orderBy: { createdAt: "desc" },
-      });
+      const rawBatches = await WasteBatchModel.find(where).sort({ createdAt: -1 }).lean();
+
+      const batches = await Promise.all(
+        rawBatches.map(async (b: any) => {
+          const idStr = b._id.toString();
+          const category = await WasteCategoryModel.findById(b.categoryId).lean();
+          const destinationFacility = await FacilityModel.findById(b.destinationFacilityId).lean();
+          const receivingRecord = await ReceivingRecordModel.findOne({
+            $or: [{ batchId: idStr }, { batchId: b.batchId }],
+          }).lean();
+
+          return {
+            ...b,
+            id: idStr,
+            category: category ? { ...category, id: (category as any)._id.toString() } : null,
+            destinationFacility: destinationFacility
+              ? { ...destinationFacility, id: (destinationFacility as any)._id.toString() }
+              : null,
+            receivingRecord: receivingRecord
+              ? { ...receivingRecord, id: (receivingRecord as any)._id.toString() }
+              : null,
+          };
+        })
+      );
 
       res.json({ success: true, batches });
     } catch (err: any) {
@@ -76,19 +105,59 @@ router.get(
         where.facilityId = req.user!.facilityId;
       }
 
-      const records = await prisma.processingRecord.findMany({
-        where,
-        include: {
-          sourceBatch: { include: { category: true } },
-          workerUser: { select: { fullName: true } },
-          supervisorUser: { select: { fullName: true } },
-          facility: true,
-          recoveredMaterials: {
-            include: { claims: true },
-          },
-        },
-        orderBy: { processedAt: "desc" },
-      });
+      const rawRecords = await ProcessingRecordModel.find(where).sort({ processedAt: -1 }).lean();
+
+      const records = await Promise.all(
+        rawRecords.map(async (p: any) => {
+          const idStr = p._id.toString();
+          const sourceBatch = (await WasteBatchModel.findOne({
+            $or: [{ _id: p.sourceBatchId }, { batchId: p.sourceBatchId }].filter(Boolean),
+          }).lean()) as any;
+
+          let populatedBatch = null;
+          if (sourceBatch) {
+            const cat = await WasteCategoryModel.findById(sourceBatch.categoryId).lean();
+            populatedBatch = {
+              ...sourceBatch,
+              id: sourceBatch._id.toString(),
+              category: cat ? { ...cat, id: (cat as any)._id.toString() } : null,
+            };
+          }
+
+          const workerUser = await UserModel.findById(p.workerUserId).select("fullName").lean();
+          const supervisorUser = p.supervisorUserId
+            ? await UserModel.findById(p.supervisorUserId).select("fullName").lean()
+            : null;
+          const facility = await FacilityModel.findById(p.facilityId).lean();
+
+          const materials = await RecoveredMaterialModel.find({
+            $or: [{ processingRecordId: idStr }, { processingRecordId: p.processingId }],
+          }).lean();
+
+          const populatedMaterials = await Promise.all(
+            materials.map(async (m: any) => {
+              const claims = await RecoveryClaimModel.find({
+                $or: [{ materialBatchId: m._id.toString() }, { materialBatchId: m.materialBatchId }],
+              }).lean();
+              return {
+                ...m,
+                id: m._id.toString(),
+                claims: claims.map((c: any) => ({ ...c, id: c._id.toString() })),
+              };
+            })
+          );
+
+          return {
+            ...p,
+            id: idStr,
+            sourceBatch: populatedBatch,
+            workerUser,
+            supervisorUser,
+            facility: facility ? { ...facility, id: (facility as any)._id.toString() } : null,
+            recoveredMaterials: populatedMaterials,
+          };
+        })
+      );
 
       res.json({ success: true, records });
     } catch (err: any) {
@@ -121,10 +190,12 @@ router.post(
       } = parse.data;
 
       // Check source batch
-      const batch = await prisma.wasteBatch.findUnique({
-        where: { id: sourceBatchId },
-        include: { destinationFacility: true },
-      });
+      const queryConditions: any[] = [{ batchId: sourceBatchId }];
+      if (mongoose.Types.ObjectId.isValid(sourceBatchId)) {
+        queryConditions.push({ _id: sourceBatchId });
+      }
+
+      const batch = await WasteBatchModel.findOne({ $or: queryConditions });
 
       if (!batch) {
         res.status(404).json({ success: false, error: "Source batch not found" });
@@ -146,7 +217,6 @@ router.post(
       });
 
       if (!massBalance.isValid) {
-        // Strict hackathon requirement: Flag or reject unexplained mismatches!
         res.status(422).json({
           success: false,
           error: "Mass-balance validation failed! The quantities do not balance.",
@@ -155,7 +225,7 @@ router.post(
         return;
       }
 
-      const count = await prisma.processingRecord.count();
+      const count = await ProcessingRecordModel.countDocuments();
       const processingId = `PROC-${new Date().getFullYear()}-${String(count + 1).padStart(4, "0")}`;
 
       const computedHash = evidenceHash || computeSha256(processingId + batch.batchId + inputWeightKg);
@@ -178,67 +248,57 @@ router.post(
 
       const facilityId = req.user!.facilityId || batch.destinationFacilityId;
 
-      const record = await prisma.$transaction(async (tx) => {
-        const proc = await tx.processingRecord.create({
-          data: {
-            processingId,
-            sourceBatchId: batch.id,
-            facilityId,
-            workerUserId: req.user!.id,
-            inputWeightKg,
-            totalRecoveredKg: massBalance.totalRecoveredKg,
-            residualKg,
-            documentedLossKg,
-            massBalanceValid: true,
-            supervisorApproved: req.user!.role === Role.ADMIN, // Admin auto-approves, worker awaits supervisor
-            notes,
-            evidenceHash: computedHash,
-            txHash,
-          },
-        });
+      const record = await ProcessingRecordModel.create({
+        processingId,
+        sourceBatchId: batch._id.toString(),
+        facilityId,
+        workerUserId: req.user!.id,
+        inputWeightKg,
+        totalRecoveredKg: massBalance.totalRecoveredKg,
+        residualKg,
+        documentedLossKg,
+        massBalanceValid: true,
+        supervisorApproved: req.user!.role === Role.ADMIN,
+        notes,
+        evidenceHash: computedHash,
+        txHash,
+      });
 
-        // Register each recovered material batch
-        let matIndex = 1;
-        for (const mat of materials) {
-          const matBatchId = `MAT-${mat.materialType.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6)}-${String(Date.now()).slice(-4)}${matIndex++}`;
-          const matHash = computeSha256(matBatchId + mat.weightKg);
+      // Register each recovered material batch
+      let matIndex = 1;
+      for (const mat of materials) {
+        const matBatchId = `MAT-${mat.materialType.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6)}-${String(Date.now()).slice(-4)}${matIndex++}`;
+        const matHash = computeSha256(matBatchId + mat.weightKg);
 
-          let matTxHash: string | null = null;
-          try {
-            matTxHash = await blockchainService.registerRecoveredMaterial(
-              matBatchId,
-              batch.batchId,
-              mat.materialType,
-              mat.weightKg,
-              matHash
-            );
-          } catch (e: any) {
-            console.warn("Recovered material blockchain notice:", e.message);
-          }
-
-          await tx.recoveredMaterial.create({
-            data: {
-              materialBatchId: matBatchId,
-              sourceBatchId: batch.id,
-              processingRecordId: proc.id,
-              materialType: mat.materialType,
-              recoveredWeightKg: mat.weightKg,
-              purityPercentage: mat.purityPercentage,
-              location: mat.location,
-              evidenceHash: matHash,
-              txHash: matTxHash,
-            },
-          });
+        let matTxHash: string | null = null;
+        try {
+          matTxHash = await blockchainService.registerRecoveredMaterial(
+            matBatchId,
+            batch.batchId,
+            mat.materialType,
+            mat.weightKg,
+            matHash
+          );
+        } catch (e: any) {
+          console.warn("Recovered material blockchain notice:", e.message);
         }
 
-        // Update batch status
-        await tx.wasteBatch.update({
-          where: { id: batch.id },
-          data: { status: BatchStatus.PROCESSED },
+        await RecoveredMaterialModel.create({
+          materialBatchId: matBatchId,
+          sourceBatchId: batch._id.toString(),
+          processingRecordId: record._id.toString(),
+          materialType: mat.materialType,
+          recoveredWeightKg: mat.weightKg,
+          claimedWeightKg: 0,
+          purityPercentage: mat.purityPercentage,
+          location: mat.location,
+          evidenceHash: matHash,
+          txHash: matTxHash,
         });
+      }
 
-        return proc;
-      });
+      // Update batch status to PROCESSED
+      await WasteBatchModel.findByIdAndUpdate(batch._id, { status: BatchStatus.PROCESSED });
 
       await logAudit({
         userId: req.user!.id,
@@ -252,6 +312,15 @@ router.post(
           txHash,
         },
         ipAddress: req.ip,
+      });
+
+      await sendNotification({
+        role: Role.ADMIN,
+        title: "Recycling Mass-Balance Verified",
+        message: `Operation ${record.processingId} completed: ${record.inputWeightKg} kg processed, ${record.totalRecoveredKg} kg recovered (${massBalance.recoveryYieldPercentage}% yield).`,
+        type: "SUCCESS",
+        entityType: "PROCESSING",
+        entityId: record.processingId,
       });
 
       res.status(201).json({
@@ -281,14 +350,25 @@ router.patch(
 
       const { approved, remarks } = parse.data;
 
-      const record = await prisma.processingRecord.update({
-        where: { id },
-        data: {
+      const queryConditions: any[] = [{ processingId: id }];
+      if (mongoose.Types.ObjectId.isValid(id)) {
+        queryConditions.push({ _id: id });
+      }
+
+      const record = await ProcessingRecordModel.findOneAndUpdate(
+        { $or: queryConditions },
+        {
           supervisorApproved: approved,
           supervisorRemarks: remarks,
           supervisorUserId: req.user!.id,
         },
-      });
+        { new: true }
+      );
+
+      if (!record) {
+        res.status(404).json({ success: false, error: "Processing record not found" });
+        return;
+      }
 
       await logAudit({
         userId: req.user!.id,

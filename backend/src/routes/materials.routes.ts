@@ -1,15 +1,25 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
-import { prisma } from "../utils/prisma";
+import mongoose from "mongoose";
 import { authenticateToken, requireRole } from "../middleware/auth";
-import { Role } from "@prisma/client";
+import {
+  Role,
+  RecoveredMaterialModel,
+  RecoveryClaimModel,
+  WasteBatchModel,
+  WasteCategoryModel,
+  FacilityModel,
+  ProcessingRecordModel,
+  UserModel,
+} from "../models";
 import { blockchainService } from "../services/blockchain";
 import { logAudit } from "../services/audit";
+import { sendNotification } from "../services/notification";
 
 const router = Router();
 
 const claimSchema = z.object({
-  materialBatchId: z.string().uuid(),
+  materialBatchId: z.string().min(1),
   claimedWeightKg: z.number().positive(),
   claimantName: z.string().min(2),
   claimantOrg: z.string().min(2),
@@ -19,14 +29,58 @@ const claimSchema = z.object({
 // GET /api/materials (List recovered materials)
 router.get("/", authenticateToken, async (req: Request, res: Response) => {
   try {
-    const materials = await prisma.recoveredMaterial.findMany({
-      include: {
-        sourceBatch: { include: { category: true, destinationFacility: true } },
-        processingRecord: { include: { workerUser: { select: { fullName: true } } } },
-        claims: true,
-      },
-      orderBy: { createdAt: "desc" },
-    });
+    const rawMaterials = await RecoveredMaterialModel.find({}).sort({ createdAt: -1 }).lean();
+
+    const materials = await Promise.all(
+      rawMaterials.map(async (m: any) => {
+        const idStr = m._id.toString();
+        const isBatchMongoId = typeof m.sourceBatchId === "string" && /^[0-9a-fA-F]{24}$/.test(m.sourceBatchId);
+        const sourceBatch = (await WasteBatchModel.findOne(
+          isBatchMongoId ? { $or: [{ _id: m.sourceBatchId }, { batchId: m.sourceBatchId }] } : { batchId: m.sourceBatchId }
+        ).lean()) as any;
+
+        let populatedBatch = null;
+        if (sourceBatch) {
+          const category = await WasteCategoryModel.findById(sourceBatch.categoryId).lean();
+          const destinationFacility = await FacilityModel.findById(sourceBatch.destinationFacilityId).lean();
+          populatedBatch = {
+            ...sourceBatch,
+            id: sourceBatch._id.toString(),
+            category: category ? { ...category, id: (category as any)._id.toString() } : null,
+            destinationFacility: destinationFacility
+              ? { ...destinationFacility, id: (destinationFacility as any)._id.toString() }
+              : null,
+          };
+        }
+
+        const isProcMongoId = typeof m.processingRecordId === "string" && /^[0-9a-fA-F]{24}$/.test(m.processingRecordId);
+        const processingRecord = (await ProcessingRecordModel.findOne(
+          isProcMongoId ? { $or: [{ _id: m.processingRecordId }, { processingId: m.processingRecordId }] } : { processingId: m.processingRecordId }
+        ).lean()) as any;
+
+        let populatedProc = null;
+        if (processingRecord) {
+          const workerUser = await UserModel.findById(processingRecord.workerUserId).select("fullName").lean();
+          populatedProc = {
+            ...processingRecord,
+            id: processingRecord._id.toString(),
+            workerUser,
+          };
+        }
+
+        const claims = await RecoveryClaimModel.find({
+          $or: [{ materialBatchId: idStr }, { materialBatchId: m.materialBatchId }],
+        }).lean();
+
+        return {
+          ...m,
+          id: idStr,
+          sourceBatch: populatedBatch,
+          processingRecord: populatedProc,
+          claims: claims.map((c: any) => ({ ...c, id: c._id.toString() })),
+        };
+      })
+    );
 
     res.json({ success: true, materials });
   } catch (err: any) {
@@ -49,9 +103,12 @@ router.post(
 
       const { materialBatchId, claimedWeightKg, claimantName, claimantOrg, notes } = parse.data;
 
-      const material = await prisma.recoveredMaterial.findUnique({
-        where: { id: materialBatchId },
-      });
+      const queryConditions: any[] = [{ materialBatchId }];
+      if (mongoose.Types.ObjectId.isValid(materialBatchId)) {
+        queryConditions.push({ _id: materialBatchId });
+      }
+
+      const material = await RecoveredMaterialModel.findOne({ $or: queryConditions });
 
       if (!material) {
         res.status(404).json({ success: false, error: "Recovered material batch not found" });
@@ -62,7 +119,6 @@ router.post(
 
       // DUPLICATE / OVER-CLAIM PREVENTION
       if (claimedWeightKg > availableKg) {
-        // Log duplicate/excessive claim alert in audit trail!
         await logAudit({
           userId: req.user!.id,
           action: "EXCESSIVE_CLAIM_REJECTED",
@@ -77,6 +133,15 @@ router.post(
           ipAddress: req.ip,
         });
 
+        await sendNotification({
+          role: Role.ADMIN,
+          title: "Excessive / Over-Claim Blocked",
+          message: `Attempted claim of ${claimedWeightKg} kg blocked on batch ${material.materialBatchId} (only ${availableKg} kg remaining).`,
+          type: "ALERT",
+          entityType: "RECOVERED_MATERIAL",
+          entityId: material.materialBatchId,
+        });
+
         res.status(400).json({
           success: false,
           error: `Claim rejected! Requested ${claimedWeightKg} kg exceeds remaining unallocated verified material (${availableKg} kg available). Duplicate or double-counting attempt prevented.`,
@@ -85,7 +150,7 @@ router.post(
         return;
       }
 
-      const count = await prisma.recoveryClaim.count();
+      const count = await RecoveryClaimModel.countDocuments();
       const claimId = `CLAIM-${new Date().getFullYear()}-${String(count + 1).padStart(4, "0")}`;
 
       // Submit on-chain via EWasteRegistry.sol
@@ -101,28 +166,19 @@ router.post(
         console.warn("Blockchain claim notice:", bcErr.message);
       }
 
-      const claim = await prisma.$transaction(async (tx) => {
-        const c = await tx.recoveryClaim.create({
-          data: {
-            claimId,
-            materialBatchId: material.id,
-            claimantName,
-            claimantOrg,
-            claimedWeightKg,
-            verified: true,
-            notes,
-            txHash,
-          },
-        });
+      const claim = await RecoveryClaimModel.create({
+        claimId,
+        materialBatchId: material._id.toString(),
+        claimantName,
+        claimantOrg,
+        claimedWeightKg,
+        verified: true,
+        notes,
+        txHash,
+      });
 
-        await tx.recoveredMaterial.update({
-          where: { id: material.id },
-          data: {
-            claimedWeightKg: { increment: claimedWeightKg },
-          },
-        });
-
-        return c;
+      await RecoveredMaterialModel.findByIdAndUpdate(material._id, {
+        $inc: { claimedWeightKg },
       });
 
       await logAudit({
@@ -132,6 +188,15 @@ router.post(
         entityId: claim.claimId,
         details: { claimedWeightKg, claimantOrg, txHash },
         ipAddress: req.ip,
+      });
+
+      await sendNotification({
+        role: Role.ADMIN,
+        title: "New Circularity Claim Submitted",
+        message: `Claim ${claim.claimId} (${claimedWeightKg} kg) submitted by ${claimantName} (${claimantOrg}). Verified against certified stock.`,
+        type: "SUCCESS",
+        entityType: "RECOVERY_CLAIM",
+        entityId: claim.claimId,
       });
 
       res.status(201).json({ success: true, claim });
@@ -144,14 +209,47 @@ router.post(
 // GET /api/materials/claims
 router.get("/claims", authenticateToken, async (req: Request, res: Response) => {
   try {
-    const claims = await prisma.recoveryClaim.findMany({
-      include: {
-        materialBatch: {
-          include: { sourceBatch: { include: { category: true } } },
-        },
-      },
-      orderBy: { claimedAt: "desc" },
-    });
+    const rawClaims = await RecoveryClaimModel.find({}).sort({ claimedAt: -1 }).lean();
+
+    const claims = await Promise.all(
+      rawClaims.map(async (c: any) => {
+        const idStr = c._id.toString();
+        const isMatMongoId = typeof c.materialBatchId === "string" && /^[0-9a-fA-F]{24}$/.test(c.materialBatchId);
+        const material = (await RecoveredMaterialModel.findOne(
+          isMatMongoId ? { $or: [{ _id: c.materialBatchId }, { materialBatchId: c.materialBatchId }] } : { materialBatchId: c.materialBatchId }
+        ).lean()) as any;
+
+        let populatedMat = null;
+        if (material) {
+          const isBatchMongoId = typeof material.sourceBatchId === "string" && /^[0-9a-fA-F]{24}$/.test(material.sourceBatchId);
+          const sourceBatch = (await WasteBatchModel.findOne(
+            isBatchMongoId ? { $or: [{ _id: material.sourceBatchId }, { batchId: material.sourceBatchId }] } : { batchId: material.sourceBatchId }
+          ).lean()) as any;
+
+          let populatedBatch = null;
+          if (sourceBatch) {
+            const cat = await WasteCategoryModel.findById(sourceBatch.categoryId).lean();
+            populatedBatch = {
+              ...sourceBatch,
+              id: sourceBatch._id.toString(),
+              category: cat ? { ...cat, id: (cat as any)._id.toString() } : null,
+            };
+          }
+
+          populatedMat = {
+            ...material,
+            id: material._id.toString(),
+            sourceBatch: populatedBatch,
+          };
+        }
+
+        return {
+          ...c,
+          id: idStr,
+          materialBatch: populatedMat,
+        };
+      })
+    );
 
     res.json({ success: true, claims });
   } catch (err: any) {

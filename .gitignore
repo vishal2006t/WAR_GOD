@@ -9,6 +9,8 @@
 
 # Database data
 data/postgres/
+data/mongo/
+data/mongodb-bin/
 *.log
 
 # Dependencies
@@ -25,6 +27,15 @@ blockchain/typechain-types/
 # Uploads
 backend/uploads/*
 !backend/uploads/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Scratch & Temporary
+scratch/
+.tempmediaStorage/
 
 # IDE & OS
 .DS_Store

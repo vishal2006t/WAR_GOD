@@ -1,48 +1,137 @@
+@import "leaflet/dist/leaflet.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --bg-main: #F7FBF7;
+  --bg-section: #E5F5EA;
+  --bg-card: #FFFFFF;
+  --bg-card-pale: #EDF7EF;
+  --primary-forest: #075B46;
+  --accent-emerald: #087F5B;
+  --text-main: #173C32;
+  --text-muted: #6B7C74;
+  --border-subtle: #D7E5DB;
+}
+
 @layer base {
   body {
-    background-color: #0B0F17;
-    color: #F1F5F9;
-    font-family: 'Inter', system-ui, sans-serif;
+    background-color: #F7FBF7;
+    color: #173C32;
+    font-family: 'DM Sans', Inter, system-ui, -apple-system, sans-serif;
+  }
+
+  h1,
+  h2,
+  h3,
+  .font-serif,
+  .editorial-heading {
+    font-family: 'DM Serif Display', 'Playfair Display', Georgia, serif;
+    letter-spacing: -0.015em;
+    color: #173C32;
+  }
+
+  /* Default input styling on light background */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="date"],
+  select,
+  textarea {
+    color: #173C32;
   }
 }
 
-/* Glassmorphism utility classes */
+/* Light minimal card and panel styles */
 .glass-panel {
-  background: rgba(17, 24, 39, 0.7);
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid #D7E5DB;
+  box-shadow: 0 1px 3px 0 rgba(7, 91, 70, 0.04);
 }
 
 .glass-card {
-  background: rgba(17, 24, 39, 0.85);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: #FFFFFF;
+  border: 1px solid #D7E5DB;
+  box-shadow: 0 2px 8px -1px rgba(7, 91, 70, 0.04), 0 1px 3px -1px rgba(7, 91, 70, 0.02);
 }
 
 .glass-panel-glow {
-  background: rgba(17, 24, 39, 0.75);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(16, 185, 129, 0.2);
-  box-shadow: 0 0 25px rgba(16, 185, 129, 0.08);
+  background: #FFFFFF;
+  border: 1px solid #D7E5DB;
+  box-shadow: 0 4px 16px -2px rgba(7, 91, 70, 0.06);
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar matching soft sage palette */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
-  background: #0B0F17;
+  background: #F7FBF7;
 }
+
 ::-webkit-scrollbar-thumb {
-  background: #1F2937;
+  background: #326b42;
   border-radius: 9999px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
-  background: #10B981;
+  background: #087F5B;
+}
+
+/* Light minimal table styling */
+table thead {
+  background-color: #EDF7EF;
+  color: #6B7C74;
+}
+
+table thead th {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6B7C74;
+  border-bottom: 1px solid #D7E5DB;
+}
+
+table tbody tr {
+  border-bottom: 1px solid #D7E5DB;
+  transition: background-color 0.15s ease;
+}
+
+table tbody tr:hover {
+  background-color: #F7FBF7;
+}
+
+/* Form inputs & controls default aesthetic */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="date"],
+select,
+textarea {
+  background-color: #FFFFFF;
+  border: 1px solid #D7E5DB;
+  color: #173C32;
+  border-radius: 0.75rem;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: #087F5B;
+  box-shadow: 0 0 0 2px rgba(8, 127, 91, 0.15);
+}
+
+/* Modal backdrop aesthetic */
+.modal-backdrop-light {
+  background-color: rgba(23, 60, 50, 0.45);
+  backdrop-filter: blur(8px);
 }

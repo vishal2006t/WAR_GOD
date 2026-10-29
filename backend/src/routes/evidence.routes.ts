@@ -4,7 +4,7 @@ import path from "path";
 import fs from "fs";
 import { authenticateToken } from "../middleware/auth";
 import { computeSha256 } from "../utils/hash";
-import { prisma } from "../utils/prisma";
+import { EvidenceFileModel } from "../models";
 
 const router = Router();
 
@@ -54,16 +54,14 @@ router.post(
       const fileBuffer = fs.readFileSync(req.file.path);
       const sha256Hash = computeSha256(fileBuffer);
 
-      const fileRecord = await prisma.evidenceFile.create({
-        data: {
-          fileName: req.file.filename,
-          originalName: req.file.originalname,
-          mimeType: req.file.mimetype,
-          fileSize: req.file.size,
-          sha256Hash,
-          filePath: `/uploads/${req.file.filename}`,
-          uploadedByUserId: req.user!.id,
-        },
+      const fileRecord = await EvidenceFileModel.create({
+        fileName: req.file.filename,
+        originalName: req.file.originalname,
+        mimeType: req.file.mimetype,
+        fileSize: req.file.size,
+        sha256Hash,
+        filePath: `/uploads/${req.file.filename}`,
+        uploadedByUserId: req.user!.id,
       });
 
       res.status(201).json({

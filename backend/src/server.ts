@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -12,9 +13,14 @@ import materialsRoutes from "./routes/materials.routes";
 import productRoutes from "./routes/product.routes";
 import adminRoutes from "./routes/admin.routes";
 import evidenceRoutes from "./routes/evidence.routes";
+import notificationRoutes from "./routes/notification.routes";
+import driverRoutes from "./routes/driver.routes";
+import marketplaceRoutes from "./routes/marketplace.routes";
+import mapsRoutes from "./routes/maps.routes";
+import driverAIRoutes from "./routes/driverAI.routes";
 import { errorHandler } from "./middleware/errorHandler";
-
 import { validateEnvironment } from "./utils/envValidator";
+import { connectMongo } from "./database/mongo";
 
 dotenv.config();
 
@@ -30,6 +36,7 @@ app.use(
     origin: "*",
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
+    exposedHeaders: ["Content-Disposition"],
   })
 );
 app.use(express.json({ limit: "10mb" }));
@@ -72,16 +79,33 @@ app.use("/api/materials", materialsRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/evidence", evidenceRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/drivers", driverRoutes);
+app.use("/api/marketplace", marketplaceRoutes);
+app.use("/api/maps", mapsRoutes);
+app.use("/api/driver-ai", driverAIRoutes);
+app.get("/api/health", (req, res) => res.redirect("/health"));
 
 // Error Handler
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-  console.log(`====================================================`);
-  console.log(` EcoTrace Backend Server running on port ${PORT}`);
-  console.log(` Health check: http://localhost:${PORT}/health`);
-  console.log(` Environment: ${process.env.NODE_ENV || "development"}`);
-  console.log(`====================================================`);
-});
+async function startServer() {
+  try {
+    await connectMongo();
+    app.listen(PORT, () => {
+      console.log(`====================================================`);
+      console.log(` EcoTrace Backend Server running on port ${PORT}`);
+      console.log(` Health check: http://localhost:${PORT}/health`);
+      console.log(` Database: MongoDB (${process.env.MONGODB_URI ? "Connected" : "Default"})`);
+      console.log(` Environment: ${process.env.NODE_ENV || "development"}`);
+      console.log(`====================================================`);
+    });
+  } catch (err: any) {
+    console.error("[Fatal Startup Error] Failed to connect to MongoDB:", err.message);
+    process.exit(1);
+  }
+}
+
+startServer();
 
 export default app;

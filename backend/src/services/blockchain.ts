@@ -1,5 +1,5 @@
 import { ethers } from "ethers";
-import { prisma } from "../utils/prisma";
+import { BlockchainTransactionModel } from "../models";
 import fs from "fs";
 import path from "path";
 
@@ -73,16 +73,15 @@ class BlockchainService {
         const receipt = await tx.wait();
         const txHash = receipt.hash || tx.hash;
 
-        await prisma.blockchainTransaction.create({
-          data: {
-            txHash,
-            functionName: fnName,
-            contractAddress: CONTRACT_ADDRESS,
-            fromAddress: this.wallet?.address,
-            blockNumber: receipt.blockNumber,
-            status: "CONFIRMED",
-            payloadJson: JSON.stringify(payload),
-          },
+        await BlockchainTransactionModel.create({
+          txHash,
+          functionName: fnName,
+          contractAddress: CONTRACT_ADDRESS,
+          fromAddress: this.wallet?.address,
+          blockNumber: receipt.blockNumber,
+          status: "CONFIRMED",
+          payloadJson: JSON.stringify(payload),
+          timestamp: new Date(),
         });
 
         return txHash;
@@ -94,14 +93,13 @@ class BlockchainService {
 
     // Fallback if contract or node is offline
     const fallbackHash = "0x" + ethers.keccak256(ethers.toUtf8Bytes(fnName + Date.now())).slice(2);
-    await prisma.blockchainTransaction.create({
-      data: {
-        txHash: fallbackHash,
-        functionName: fnName,
-        contractAddress: CONTRACT_ADDRESS || "0x0000000000000000000000000000000000000000",
-        status: "LOCAL_DEV_OFFLINE",
-        payloadJson: JSON.stringify(payload),
-      },
+    await BlockchainTransactionModel.create({
+      txHash: fallbackHash,
+      functionName: fnName,
+      contractAddress: CONTRACT_ADDRESS || "0x0000000000000000000000000000000000000000",
+      status: "LOCAL_DEV_OFFLINE",
+      payloadJson: JSON.stringify(payload),
+      timestamp: new Date(),
     });
     return fallbackHash;
   }

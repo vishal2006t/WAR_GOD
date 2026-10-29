@@ -11,7 +11,6 @@ import {
   Building2,
   Wrench,
   UserCheck,
-  Sparkles,
   Link2,
   CheckCircle,
 } from "lucide-react";
@@ -45,14 +44,6 @@ export const LandingPage: React.FC = () => {
       color: "from-emerald-500/20 to-teal-500/20 text-emerald-400 border-emerald-500/30",
     },
     {
-      role: "DRIVER",
-      title: "Logistics & Transport Desk",
-      desc: "Manage assigned dispatches, update live trip status, upload delivery proof, and log handovers.",
-      path: "/login/driver",
-      icon: Truck,
-      color: "from-blue-500/20 to-cyan-500/20 text-blue-400 border-blue-500/30",
-    },
-    {
       role: "FACTORY",
       title: "Factory Intake Station",
       desc: "Perform weighbridge verification, flag discrepancies, record acceptance/rejection, and allocate storage.",
@@ -81,47 +72,44 @@ export const LandingPage: React.FC = () => {
   return (
     <div className="space-y-16 pb-20">
       {/* Hero Section */}
-      <section className="relative pt-12 pb-8 overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-900/20 via-[#0B0F17] to-[#0B0F17] -z-10" />
-
+      <section className="relative pt-16 pb-12 overflow-hidden bg-gradient-to-b from-[#E5F5EA]/60 to-transparent">
         <div className="max-w-4xl mx-auto text-center space-y-6 px-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Problem Statement WEB3-02 — 36-Hour Hackathon</span>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#E5F5EA] border border-[#D7E5DB] text-xs font-semibold text-[#075B46]">
+            <span>Blockchain E-Waste Traceability &amp; Circularity</span>
           </div>
 
-          <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-white leading-tight">
-            Decentralized E-Waste Traceability & <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-200">Mass-Balance Audit</span>
+          <h1 className="text-4xl sm:text-6xl font-serif text-[#173C32] leading-tight tracking-tight">
+            Decentralized E-Waste Traceability &amp; <span className="text-[#075B46] italic">Mass-Balance Audit</span>
           </h1>
 
-          <p className="text-base sm:text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-base sm:text-lg text-[#6B7C74] max-w-2xl mx-auto leading-relaxed font-sans">
             EcoTrace provides cryptographically verifiable provenance from dealer collection, transportation, and factory weighbridges to certified circular materials and refurbished consumer goods.
           </p>
 
           {/* Public Verification Quick Search */}
           <div className="pt-4 max-w-xl mx-auto">
-            <form onSubmit={handleSearch} className="flex items-center gap-2 glass-panel p-2 rounded-2xl border border-emerald-500/30 shadow-xl shadow-emerald-950/40">
-              <Search className="w-5 h-5 text-emerald-400 ml-3 shrink-0" />
+            <form onSubmit={handleSearch} className="flex items-center gap-2 bg-white p-2 rounded-2xl border border-[#D7E5DB] shadow-sm">
+              <Search className="w-5 h-5 text-[#075B46] ml-3 shrink-0" />
               <input
                 type="text"
                 placeholder="Enter Product ID or Serial No (e.g. SN-DELL-883921)..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-transparent px-3 py-2 text-sm text-white placeholder-slate-400 focus:outline-none"
+                className="w-full bg-transparent px-3 py-2 text-sm text-[#173C32] placeholder-[#6B7C74]/70 focus:outline-none"
               />
               <button
                 type="submit"
-                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-bold text-xs shadow-md shadow-emerald-500/20 hover:scale-[1.02] transition-transform shrink-0"
+                className="px-6 py-2.5 rounded-xl bg-[#075B46] hover:bg-[#087F5B] text-white font-semibold text-xs shadow-sm hover:scale-[1.02] transition-transform shrink-0"
               >
                 Verify
               </button>
             </form>
-            <div className="flex items-center justify-center gap-4 mt-2 text-[11px] text-slate-400 font-mono">
+            <div className="flex items-center justify-center gap-4 mt-2 text-[11px] text-[#6B7C74] font-mono">
               <span>Demo Serials:</span>
               <button
                 type="button"
                 onClick={() => setSearchQuery("SN-DELL-883921")}
-                className="text-emerald-400 underline hover:text-emerald-300"
+                className="text-[#075B46] underline hover:text-[#087F5B] font-semibold"
               >
                 SN-DELL-883921
               </button>
@@ -129,7 +117,7 @@ export const LandingPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setSearchQuery("PROD-REFURB-001")}
-                className="text-emerald-400 underline hover:text-emerald-300"
+                className="text-[#075B46] underline hover:text-[#087F5B] font-semibold"
               >
                 PROD-REFURB-001
               </button>
@@ -141,34 +129,34 @@ export const LandingPage: React.FC = () => {
       {/* Core Platform Pillars */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="glass-card p-6 rounded-2xl border border-slate-800 space-y-3">
-            <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
-              <Scale className="w-6 h-6" />
+          <div className="bg-white p-6 rounded-2xl border border-[#D7E5DB] space-y-3 shadow-sm hover:shadow-md transition-all">
+            <div className="w-12 h-12 rounded-xl bg-[#E5F5EA] text-[#075B46] border border-[#D7E5DB] flex items-center justify-center">
+              <Scale className="w-6 h-6 stroke-[2]" />
             </div>
-            <h3 className="text-lg font-bold text-white">Strict Mass-Balance Validation</h3>
-            <p className="text-xs text-slate-300 leading-relaxed">
+            <h3 className="text-xl font-serif text-[#173C32]">Strict Mass-Balance Validation</h3>
+            <p className="text-xs text-[#6B7C74] leading-relaxed font-sans">
               Enforces the physical conservation law: <br />
-              <code className="text-emerald-400 font-mono text-[11px]">Input = Recovered + Residual + Loss</code>.
+              <code className="text-[#075B46] font-mono text-[11px] font-semibold">Input = Recovered + Residual + Loss</code>.
               Unexplained discrepancies are flagged or rejected on-chain.
             </p>
           </div>
 
-          <div className="glass-card p-6 rounded-2xl border border-slate-800 space-y-3">
-            <div className="w-12 h-12 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center">
-              <ShieldCheck className="w-6 h-6" />
+          <div className="bg-white p-6 rounded-2xl border border-[#D7E5DB] space-y-3 shadow-sm hover:shadow-md transition-all">
+            <div className="w-12 h-12 rounded-xl bg-[#E5F5EA] text-[#075B46] border border-[#D7E5DB] flex items-center justify-center">
+              <ShieldCheck className="w-6 h-6 stroke-[2]" />
             </div>
-            <h3 className="text-lg font-bold text-white">Duplicate-Claim Prevention</h3>
-            <p className="text-xs text-slate-300 leading-relaxed">
+            <h3 className="text-xl font-serif text-[#173C32]">Duplicate-Claim Prevention</h3>
+            <p className="text-xs text-[#6B7C74] leading-relaxed font-sans">
               Smart contracts and database constraints prevent circular claims exceeding verified recovered weights, stopping greenwashing and double-counting.
             </p>
           </div>
 
-          <div className="glass-card p-6 rounded-2xl border border-slate-800 space-y-3">
-            <div className="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center">
-              <Link2 className="w-6 h-6" />
+          <div className="bg-white p-6 rounded-2xl border border-[#D7E5DB] space-y-3 shadow-sm hover:shadow-md transition-all">
+            <div className="w-12 h-12 rounded-xl bg-[#E5F5EA] text-[#075B46] border border-[#D7E5DB] flex items-center justify-center">
+              <Link2 className="w-6 h-6 stroke-[2]" />
             </div>
-            <h3 className="text-lg font-bold text-white">Auditable Smart Contracts</h3>
-            <p className="text-xs text-slate-300 leading-relaxed">
+            <h3 className="text-xl font-serif text-[#173C32]">Auditable Smart Contracts</h3>
+            <p className="text-xs text-[#6B7C74] leading-relaxed font-sans">
               Every critical lifecycle transition emits on-chain events on Hardhat EVM (31337), backed by SHA-256 evidence digests and public verification.
             </p>
           </div>
@@ -178,8 +166,8 @@ export const LandingPage: React.FC = () => {
       {/* 6 Role Portals Grid */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         <div className="text-center space-y-2">
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-white">Six Dedicated Role Portals</h2>
-          <p className="text-xs text-slate-400 max-w-xl mx-auto">
+          <h2 className="text-3xl sm:text-4xl font-serif text-[#173C32]">Dedicated Role Portals</h2>
+          <p className="text-xs text-[#6B7C74] max-w-xl mx-auto font-sans">
             Role-based authentication, customized dashboard views, strict backend permissions, and segregated business workflows.
           </p>
         </div>
@@ -190,29 +178,29 @@ export const LandingPage: React.FC = () => {
             return (
               <div
                 key={portal.role}
-                className="glass-card p-6 rounded-2xl border border-slate-800 hover:border-emerald-500/40 transition-all duration-300 flex flex-col justify-between group hover:shadow-xl hover:shadow-emerald-950/20"
+                className="bg-white p-6 rounded-2xl border border-[#D7E5DB] hover:border-[#075B46]/40 transition-all duration-300 flex flex-col justify-between group shadow-sm hover:shadow-md"
               >
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <div className={`p-3 rounded-xl border bg-gradient-to-tr ${portal.color}`}>
-                      <Icon className="w-6 h-6" />
+                    <div className="p-3 rounded-xl border border-[#D7E5DB] bg-[#EDF7EF] text-[#075B46]">
+                      <Icon className="w-6 h-6 stroke-[2]" />
                     </div>
-                    <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+                    <span className="text-[10px] font-mono font-semibold px-2.5 py-1 rounded-full bg-[#E5F5EA] text-[#075B46] border border-[#D7E5DB]">
                       {portal.role}
                     </span>
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-white group-hover:text-emerald-300 transition-colors">
+                    <h3 className="text-lg font-serif font-bold text-[#173C32] group-hover:text-[#075B46] transition-colors">
                       {portal.title}
                     </h3>
-                    <p className="mt-2 text-xs text-slate-400 leading-relaxed">{portal.desc}</p>
+                    <p className="mt-2 text-xs text-[#6B7C74] leading-relaxed font-sans">{portal.desc}</p>
                   </div>
                 </div>
 
                 <div className="pt-6">
                   <Link
                     to={portal.path}
-                    className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl bg-slate-800/80 hover:bg-emerald-600 text-slate-200 hover:text-slate-950 font-semibold text-xs border border-slate-700/80 hover:border-emerald-500 transition-all"
+                    className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl bg-[#EDF7EF] hover:bg-[#075B46] text-[#075B46] hover:text-white font-semibold text-xs border border-[#D7E5DB] transition-all"
                   >
                     <span>Enter {portal.role} Portal</span>
                     <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />

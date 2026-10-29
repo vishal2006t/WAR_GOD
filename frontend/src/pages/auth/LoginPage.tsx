@@ -97,6 +97,12 @@ export const LoginPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  React.useEffect(() => {
+    setEmail(config.email);
+    setPassword("password123");
+    setError(null);
+  }, [config.email]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -119,69 +125,66 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center px-4 py-12">
-      <div className="max-w-md w-full glass-card p-8 rounded-2xl border border-slate-800 shadow-2xl relative">
-        {/* Glow backdrop */}
-        <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-48 h-20 bg-emerald-500/10 blur-3xl rounded-full -z-10" />
-
+    <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center px-4 py-12 bg-[#F7FBF7]">
+      <div className="max-w-md w-full bg-white p-8 rounded-3xl border border-[#D7E5DB] shadow-md relative">
         {/* Header */}
         <div className="text-center space-y-2 mb-8">
-          <div className="inline-flex p-3 rounded-2xl bg-slate-900 border border-slate-800 shadow-inner mb-2">
-            <Icon className="w-8 h-8 text-emerald-400" />
+          <div className="inline-flex p-3 rounded-2xl bg-[#E5F5EA] text-[#075B46] border border-[#D7E5DB] shadow-sm mb-2">
+            <Icon className="w-8 h-8 text-[#075B46] stroke-[2]" />
           </div>
-          <h2 className="text-2xl font-bold text-white tracking-tight">{config.title}</h2>
-          <p className="text-xs text-slate-400">{config.subtitle}</p>
+          <h2 className="text-2xl sm:text-3xl font-serif text-[#173C32] tracking-tight">{config.title}</h2>
+          <p className="text-xs text-[#6B7C74] font-sans">{config.subtitle}</p>
         </div>
 
         {/* Demo Creds Shortcut Pill */}
-        <div className="mb-6 p-3 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between text-xs">
+        <div className="mb-6 p-3.5 rounded-2xl bg-[#EDF7EF] border border-[#D7E5DB] flex items-center justify-between text-xs">
           <div>
-            <p className="text-slate-400 text-[11px]">Seeded Test Account:</p>
-            <p className="font-mono text-emerald-400 font-medium">{config.email}</p>
+            <p className="text-[#6B7C74] text-[11px] font-medium">Seeded Test Account:</p>
+            <p className="font-mono text-[#075B46] font-semibold">{config.email}</p>
           </div>
           <button
             type="button"
             onClick={fillDemoCreds}
-            className="flex items-center gap-1 px-2.5 py-1 rounded bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 border border-emerald-500/30 text-[11px] font-medium transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#E5F5EA] text-[#075B46] hover:bg-[#D7E5DB] border border-[#D7E5DB] text-[11px] font-semibold transition-colors shadow-sm"
           >
-            <KeyRound className="w-3 h-3" />
+            <KeyRound className="w-3.5 h-3.5 text-[#075B46]" />
             <span>Auto Fill</span>
           </button>
         </div>
 
         {error && (
-          <div className="mb-6 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+          <div className="mb-6 p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
             <span>{error}</span>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1.5">Email Address</label>
+            <label className="block text-xs font-semibold text-[#173C32] mb-1.5 font-sans">Email Address</label>
             <div className="relative">
-              <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+              <Mail className="w-4 h-4 text-[#6B7C74] absolute left-3.5 top-3.5" />
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-slate-900/80 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
+                className="w-full bg-white border border-[#D7E5DB] rounded-xl pl-10 pr-4 py-2.5 text-xs text-[#173C32] placeholder-[#6B7C74]/60 focus:outline-none focus:border-[#075B46] focus:ring-1 focus:ring-[#075B46] transition-colors shadow-sm"
                 placeholder="name@example.com"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1.5">Password</label>
+            <label className="block text-xs font-semibold text-[#173C32] mb-1.5 font-sans">Password</label>
             <div className="relative">
-              <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+              <Lock className="w-4 h-4 text-[#6B7C74] absolute left-3.5 top-3.5" />
               <input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-slate-900/80 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
+                className="w-full bg-white border border-[#D7E5DB] rounded-xl pl-10 pr-4 py-2.5 text-xs text-[#173C32] placeholder-[#6B7C74]/60 focus:outline-none focus:border-[#075B46] focus:ring-1 focus:ring-[#075B46] transition-colors shadow-sm"
                 placeholder="••••••••"
               />
             </div>
@@ -190,7 +193,7 @@ export const LoginPage: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full mt-2 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-500/20 hover:scale-[1.01] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            className="w-full mt-2 py-3 px-4 rounded-xl bg-[#075B46] hover:bg-[#087F5B] text-white font-semibold text-xs shadow-sm hover:scale-[1.01] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
           >
             {loading ? "Authenticating & Verifying Role..." : `Sign In to ${config.role} Portal`}
             <ArrowRight className="w-4 h-4" />
@@ -198,17 +201,17 @@ export const LoginPage: React.FC = () => {
         </form>
 
         {/* Other Portals Switcher */}
-        <div className="mt-8 pt-6 border-t border-slate-800 text-center">
-          <p className="text-xs text-slate-400 mb-2">Need to access another role portal?</p>
+        <div className="mt-8 pt-6 border-t border-[#D7E5DB] text-center">
+          <p className="text-xs text-[#6B7C74] mb-2 font-sans">Need to access another role portal?</p>
           <div className="flex flex-wrap items-center justify-center gap-1.5 text-[11px] font-mono">
             {(["ADMIN", "DEALER", "DRIVER", "FACTORY", "WORKER", "CUSTOMER"] as Role[]).map((r) => (
               <Link
                 key={r}
                 to={`/login/${r.toLowerCase()}`}
-                className={`px-2 py-0.5 rounded border transition-colors ${
+                className={`px-2.5 py-1 rounded-lg border transition-colors ${
                   r === config.role
-                    ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
-                    : "bg-slate-900 text-slate-400 border-slate-800 hover:text-white"
+                    ? "bg-[#E5F5EA] text-[#075B46] border-[#D7E5DB] font-bold"
+                    : "bg-[#EDF7EF] text-[#6B7C74] border-[#D7E5DB] hover:text-[#173C32]"
                 }`}
               >
                 {r}
